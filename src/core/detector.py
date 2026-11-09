@@ -1,7 +1,10 @@
+import random
 from itertools import groupby
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Optional
 
+import numpy as np
 from scipy.stats import entropy
+from scipy.signal import convolve2d
 
 import src.core.seq2smth as seq2smth
 
@@ -20,6 +23,7 @@ class ShannonDetector:
         3. Low-complexity points are converted into a sequence of amino acids and trimmed.
         4. Low-complexity regions (LCRs) are formed by merging.
     '''
+
     def __init__(self, sequence: str, window: int, min_length: int):
         '''
         Initializes the Shannon entropy-based low complexity region detector.
@@ -69,6 +73,9 @@ class ShannonDetector:
                 i += 1
 
     def filter_by_len(self):
+        '''
+        Removes LCRs shorter than the configured minimal length.
+        '''
         self.lcr = [lcr for lcr in self.lcr if lcr.end - lcr.start + 1 >= self.min_length]
 
     def run(self):
@@ -79,4 +86,96 @@ class ShannonDetector:
         lcp = [i for i, aa_entropy in enumerate(entropies) if aa_entropy < self.rand_entropy]
         self.determine_lcr(lcp)
         self.merge_lcr()
+        self.filter_by_len()
+
+class DotplotDetector:
+    '''
+    Identifies regions of low complexity in a protein sequence using a dotplot
+    self-similarity matrix with 2D kernel convolution and an FDR-based threshold.
+    Algorithm:
+        0. Builds a binary dotplot: 1 where amino acids match, 0 otherwise.
+        1. Convolves the dotplot with a uniform kernel (kernel_size x kernel_size),
+           so each cell of the result holds the local match density. Only the main
+           diagonal is used, because it reflects self-similarity of the sequence
+           with itself.
+        2. Estimates the null distribution: shuffles the sequence, recomputes the
+           convolved diagonal, and pools the values across iterations. The
+           (1 - fdr_rate) percentile becomes the detection threshold.
+        3. Marks diagonal positions with density at or above the threshold as low
+           complexity points (LCPs) and groups contiguous ones into low complexity
+           regions (LCRs).
+        4. Filters LCRs shorter than min_length.
+    '''
+
+    def __init__(self, sequence: str, kernel_size: int, fdr_rate: float = 0.01, min_length: int = 4):
+        '''
+        Initializes the dotplot-based low complexity region detector.
+        '''
+        self.sequence = sequence
+        self.kernel = np.ones((kernel_size, kernel_size), dtype=np.float32)
+        self.fdr_rate = fdr_rate
+        self.min_length = min_length
+
+        self.array = np.array(list(sequence))
+        self.dotplot = (self.array[:, None] == self.array[None, :]).astype(np.float32)
+        self.convolved = convolve2d(self.dotplot, self.kernel, mode='same', boundary='fill')
+
+        self.threshold: Optional[float] = None
+        self.lcr: List[LCR] = []
+
+    def calculate_fdr_threshold(self, iterations: int = 50):
+        '''
+        Estimates a false discovery rate (FDR) threshold from shuffled sequences.
+
+        Each iteration shuffles the input sequence, rebuilds the convolved dotplot,
+        and collects its main diagonal. All collected diagonals are pooled, and the
+        (1 - fdr_rate)-th percentile is stored as the detection threshold.
+        '''
+        sequence_list = list(self.sequence)
+        diag = []
+        for _ in range(iterations):
+            random.shuffle(sequence_list)
+            shuffled_sequence = ''.join(sequence_list)
+            shuffled_array = np.array(list(shuffled_sequence))
+            shuffled_dotplot = (shuffled_array[:, None] == shuffled_array[None, :]).astype(np.float32)
+            shuffled_convolved = convolve2d(shuffled_dotplot, self.kernel)
+            diag.append(np.diag(shuffled_convolved))
+        diag = np.concatenate(diag)
+
+        self.threshold = float(np.percentile(diag, 100 * (1 - self.fdr_rate)))
+
+    def determine_lcr(self):
+        '''
+        Converts contiguous Low Complexity Points on the main diagonal into
+        Low Complexity Regions (LCRs).
+
+        Diagonal cells whose density is at or above the threshold are marked as
+        LCPs. Contiguous LCPs are grouped and converted into LCR objects.
+        '''
+        lcp = np.diag(self.convolved)
+        mask = lcp >= self.threshold
+
+        start = None
+        for i, is_lcr in enumerate(mask):
+            if is_lcr and start is None:
+                start = i
+            elif not is_lcr and start is not None:
+                self.lcr.append(LCR(self.sequence[start: i], start, i - 1))
+                start = None
+
+        if start is not None:
+            self.lcr.append(LCR(self.sequence[start: len(mask)], start, len(mask) - 1))
+
+    def filter_by_len(self):
+        '''
+        Removes LCRs shorter than the configured minimal length.
+        '''
+        self.lcr = [lcr for lcr in self.lcr if lcr.end - lcr.start + 1 >= self.min_length]
+
+    def run(self):
+        '''
+        Executes the complete low complexity region detection pipeline.
+        '''
+        self.calculate_fdr_threshold(fdr_rate=self.fdr_rate)
+        self.determine_lcr()
         self.filter_by_len()
