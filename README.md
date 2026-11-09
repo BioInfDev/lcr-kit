@@ -120,3 +120,20 @@ Sequence	Start	End
 AAAAAAAAAA	45	78
 GGGGGGGGGGG	112	140
 ```
+
+# Library Usage
+```Python
+from lcr_kit.core.detector import ShannonDetector, DotplotDetector
+
+
+seq = "MSETTAPPPQQQPPPP"
+min_length = 4
+
+window = 3
+shannon_detector = ShannonDetector(sequence=seq, window=window, min_length=min_length)
+shannon_detector.run()
+
+kernel_size, fdr_rate = 3, 0.01
+dotplot_detector = DotplotDetector(sequence=seq, kernel_size=kernel_size, fdr_rate=fdr_rate, min_length=min_length)
+dotplot_detector.run()
+```
