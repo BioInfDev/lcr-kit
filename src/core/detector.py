@@ -176,6 +176,6 @@ class DotplotDetector:
         '''
         Executes the complete low complexity region detection pipeline.
         '''
-        self.calculate_fdr_threshold(fdr_rate=self.fdr_rate)
+        self.calculate_fdr_threshold()
         self.determine_lcr()
         self.filter_by_len()
