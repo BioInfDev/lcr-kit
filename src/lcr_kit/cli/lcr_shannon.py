@@ -12,7 +12,7 @@ app = typer.Typer()
 
 @app.command()
 def detector(fasta: Annotated[Path, typer.Argument(exists = True, dir_okay = False, help = 'Path to the FASTA with protein sequence')],
-            protein: Annotated[Path, typer.Argument(help = 'Gene name or Protein name')],
+            protein: Annotated[str, typer.Argument(help = 'Gene name or Protein name')],
             window: Annotated[int, typer.Option('--window', '-w', help = 'Sliding window size')] = 3,
             min_length: Annotated[int, typer.Option('--min_length', '-l', help = 'Minimal LCR length')] = 4):
     record = next(SeqIO.parse(str(fasta), 'fasta'))

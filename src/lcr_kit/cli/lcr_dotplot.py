@@ -12,7 +12,7 @@ app = typer.Typer()
 
 @app.command()
 def detector(fasta: Annotated[Path, typer.Argument(exists = True, dir_okay = False, help = 'Path to the FASTA with protein sequence')],
-            protein: Annotated[Path, typer.Argument(help = 'Gene name or Protein name')],
+            protein: Annotated[str, typer.Argument(help = 'Gene name or Protein name')],
             kernel_size: Annotated[int, typer.Option('--kernel-size', '-k', help = 'Kernel size for convolution')] = 3,
             fdr_rate: Annotated[float, typer.Option('--fdr-rate', '-t', help = 'Fdr rate')] = 0.01,
             min_length: Annotated[int, typer.Option('--min_length', '-l', help = 'Minimal LCR length')] = 4):
