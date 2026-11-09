@@ -1,0 +1,24 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'lcr-kit'
+version = '0.1.0'
+dependencies = [
+    'biopython',
+    'typer',
+    'pandas',
+    'scipy',
+    'numpy'
+]
+
+[tool.setuptools]
+package-dir = {'' = 'src'}
+
+[tool.setuptools.packages.find]
+where = ['src']
+
+[project.scripts]
+lcr-shannon = "lcr_kit.cli.lcr_shannon:app"
+lcr-dotplot = "lcr_kit.cli.lcr_dotplot:app"

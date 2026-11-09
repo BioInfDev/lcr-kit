@@ -6,7 +6,7 @@ import numpy as np
 from scipy.stats import entropy
 from scipy.signal import convolve2d
 
-import src.core.seq2smth as seq2smth
+import lcr_kit.core.seq2smth as seq2smth
 
 class LCR(NamedTuple):
     seq: str
