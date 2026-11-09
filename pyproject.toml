@@ -4,6 +4,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'lcr-kit'
+license = 'MIT'
 version = '0.1.0'
 dependencies = [
     'biopython',
