@@ -64,14 +64,14 @@ lcr-shannon <fasta> <protein> [--window N] [--min_length N]
 **Example**
 
 ```bash
-lcr-shannon detector P12345.fasta P12345 --window 3 --min_length 4
+lcr-shannon P12345.fasta P12345 --window 3 --min_length 4
 ```
 
 ## lcr-dotplot
 Detects low-complexity regions by convolving a self-dotplot along the diagonal and applying FDR control.
 
 ```bash
-lcr-dotplot detector <fasta> <protein> [--kernel-size N] [--fdr-rate F] [--min_length N]
+lcr-dotplot <fasta> <protein> [--kernel-size N] [--fdr-rate F] [--min_length N]
 ```
 
 **Arguments**
